@@ -2,6 +2,7 @@ from sys import argv
 from csv import DictReader
 from urlparse import urlparse
 from io import StringIO
+from hashlib import sha1
 from . import URL_REDIRECT
 
 allowed_types = 'A', 'CNAME', 'MX', 'AAAA', 'TXT', 'PTR', 'SRV', 'SPF', 'NS', 'SOA', URL_REDIRECT
@@ -36,6 +37,10 @@ def test_file(filename):
     for found_row in found_rows:
         if found_row['Type'] in ('NS', 'SOA'):
             assert normalize(found_row) in needed_tuples
+    
+    # Seriously don't mess with the required rows.
+    digest = sha1(needed_csv).hexdigest()
+    assert digest.startswith('46ff1e53bb3514c6'), 'needed_csv value has been tampered with'
     
     # Are types and TTLs all as expected?
     for row in found_rows:

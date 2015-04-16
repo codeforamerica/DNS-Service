@@ -1,5 +1,12 @@
+from flask import current_app, request, jsonify
+
 from . import cfadns
 
 @cfadns.route('/')
 def index():
-    return 'Hello world.'
+    response = dict(
+        hostname = request.headers.get('Host', '-'),
+        records = current_app.config['HOST_RECORDS']
+        )
+    
+    return jsonify(response)

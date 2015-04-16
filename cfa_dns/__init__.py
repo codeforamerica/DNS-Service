@@ -1,3 +1,5 @@
+URL_REDIRECT = 'URL Redirect'
+
 from csv import DictReader
 from os.path import dirname, join
 from flask import Blueprint, Flask

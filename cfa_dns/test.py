@@ -1,8 +1,10 @@
 from sys import argv
 from csv import DictReader
+from urlparse import urlparse
 from io import StringIO
+from . import URL_REDIRECT
 
-allowed_types = 'A', 'CNAME', 'MX', 'AAAA', 'TXT', 'PTR', 'SRV', 'SPF', 'NS', 'SOA'
+allowed_types = 'A', 'CNAME', 'MX', 'AAAA', 'TXT', 'PTR', 'SRV', 'SPF', 'NS', 'SOA', URL_REDIRECT
 allowed_ttls = range(300, 172801)
 
 needed_csv = u'''Note	Type	Host	Value	TTL
@@ -36,9 +38,13 @@ def test_file(filename):
             assert normalize(found_row) in needed_tuples
     
     # Are types and TTLs all as expected?
-    for found_row in found_rows:
-        assert found_row['Type'] in allowed_types
-        assert int(found_row['TTL']) in allowed_ttls, '"{TTL}" is a bad TTL'.format(**found_row)
+    for row in found_rows:
+        assert row['Type'] in allowed_types, '"{Type}" is a bad record type'.format(**row)
+        assert int(row['TTL']) in allowed_ttls, '"{TTL}" is a bad TTL'.format(**row)
+        
+        if row['Type'] == URL_REDIRECT:
+            scheme = urlparse(row['Value']).scheme
+            assert scheme in ('http', 'https'), '"{Value}" is a bad redirect'.format(**row)
     
 if __name__ == '__main__':
     _, filename = argv

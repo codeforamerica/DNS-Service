@@ -1,12 +1,22 @@
-from flask import current_app, request, jsonify
+from flask import current_app, request, redirect
 
-from . import cfadns
+from . import cfadns, URL_REDIRECT
 
 @cfadns.route('/')
-def index():
-    response = dict(
-        hostname = request.headers.get('Host', '-'),
-        records = current_app.config['HOST_RECORDS']
-        )
+@cfadns.route('/<path:path>')
+def index(path=None):
+    host_parts = request.headers.get('Host', '').split('.')
+    zone_parts = current_app.config['ZONE_NAME'].split('.')
     
-    return jsonify(response)
+    if host_parts[-len(zone_parts):] == zone_parts:
+        host_prefix = '.'.join(host_parts[:-len(zone_parts)])
+        
+        redirects = [rec for rec in current_app.config['HOST_RECORDS']
+                     if rec['Type'] == URL_REDIRECT and rec['Host'] == host_prefix]
+    
+        if redirects:
+            return redirect('{}/{}'.format(redirects[0]['Value'], path))
+
+        return 'I might know something about {}\n'.format('.'.join(host_parts))
+
+    return 'I know nothing of {}\n'.format('.'.join(host_parts))

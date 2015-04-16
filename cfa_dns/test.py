@@ -43,13 +43,15 @@ def test_file(filename):
     assert digest.startswith('46ff1e53bb3514c6'), 'needed_csv value has been tampered with'
     
     # Are types and TTLs all as expected?
-    for row in found_rows:
-        assert row['Type'] in allowed_types, '"{Type}" is a bad record type'.format(**row)
-        assert int(row['TTL']) in allowed_ttls, '"{TTL}" is a bad TTL'.format(**row)
+    for (index, row) in enumerate(found_rows):
+        row.update(dict(source='{} row {}'.format(filename, index+1)))
+    
+        assert row['Type'] in allowed_types, '"{Type}" is a bad record type, {source}'.format(**row)
+        assert int(row['TTL']) in allowed_ttls, '"{TTL}" is a bad TTL, {source}'.format(**row)
         
         if row['Type'] == URL_REDIRECT:
             scheme = urlparse(row['Value']).scheme
-            assert scheme in ('http', 'https'), '"{Value}" is a bad redirect'.format(**row)
+            assert scheme in ('http', 'https'), '"{Value}" is a bad redirect, {source}'.format(**row)
     
 if __name__ == '__main__':
     _, filename = argv

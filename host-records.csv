@@ -5,7 +5,7 @@ NS,,ns-461.awsdns-57.com.,172800,Do not touch.
 NS,,ns-1271.awsdns-30.org.,172800,Do not touch.
 SOA,,ns-1640.awsdns-13.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400,900,Do not touch.
 TXT,hello,"""Hello world.""",300,
-TXT,test1,"""Testing 1""",60,
+TXT,test1,"""Testing 1""",300,
 TXT,*,"""Sample Text Entries""",300,
 TXT,*,"""Enclose entries in quotation marks""",300,
 CNAME,www,www.oaklandcagov.rocks.s3-website-us-east-1.amazonaws.com,300,

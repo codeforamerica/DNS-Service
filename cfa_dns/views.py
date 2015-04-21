@@ -1,6 +1,6 @@
 from flask import current_app, request, redirect
 
-from . import cfadns, URL_REDIRECT
+from . import cfadns, URL_REDIRECTS
 
 @cfadns.route('/')
 @cfadns.route('/<path:path>')
@@ -12,7 +12,7 @@ def index(path=None):
         host_prefix = '.'.join(host_parts[:-len(zone_parts)])
         
         redirects = [rec for rec in current_app.config['HOST_RECORDS']
-                     if rec['Type'] == URL_REDIRECT and rec['Host'] == host_prefix]
+                     if rec['Type'] in URL_REDIRECTS and rec['Host'] == host_prefix]
     
         if redirects:
             return redirect('{}/{}'.format(redirects[0]['Value'], path))

@@ -7,7 +7,7 @@ import unittest
 from httmock import response, HTTMock
 
 from . import check_file
-from .api import hash_host_records, format_csv_row, check_upstream
+from .api import hash_host_records, format_csv_row, check_upstream, push_upstream
 
 class TestFile (unittest.TestCase):
 
@@ -17,6 +17,12 @@ class TestFile (unittest.TestCase):
 
 class TestAPI (unittest.TestCase):
 
+    STEP_BAD_HASH = 1
+    STEP_AFTER_ADD = 2
+
+    HASH_BEFORE = '20bea02f8bf1fe5f9565e24b37353162ef5c73e9'
+    HASH_AFTER = '744a86c74b52f6bc4edf2376cb9926630b91dd6b'
+    
     api_error_xml = '''<?xml version="1.0" encoding="utf-8"?>
         <ApiResponse Status="ERROR" xmlns="http://api.namecheap.com/xml.response">
           <Errors>
@@ -30,27 +36,35 @@ class TestAPI (unittest.TestCase):
         </ApiResponse>
         '''
     
-    STEP_BAD_HASH = 1
+    hosts_csv_data = u'''Type,Host,Value,TTL,MXPref,Note
+A,*.s,23.21.64.76,300,,
+CNAME,www,ec2-54-234-33-69.compute-1.amazonaws.com.,60,,The website
+MX,@,ASPMX.L.GOOGLE.COM.,300,10,GMail
+A,@,54.234.33.69,60,,The website
+A,boston,66.220.0.85,1800,,
+URL301,network,http://peernetwork.in,1800,,
+'''
 
-    def setUp(self):
-        '''
-        '''
-        self.api_base = 'http://example.com/root'
-        _, self.api_host, self.api_path, _, _, _ = urlparse(self.api_base)
-    
+    api_base, api_key = 'http://example.com/root', '0xWHATWHAT'
+    _, api_host, api_path, _, _, _ = urlparse(api_base)
+
     def response_content(self, step=None):
       '''
       '''
       case = self
       
-      def thing_doer(url, request):
+      def mock_handler(url, request):
         scheme, host, path, _, query, _ = urlparse(url.geturl())
         headers = {'Content-Type': 'text/xml; charset=utf-8'}
         
         if (host, path) == (case.api_host, case.api_path):
             args = dict(parse_qsl(query))
+            form = dict(parse_qsl(request.body or ''))
             
-            if (request.method, args['Command']) == ('GET', 'namecheap.domains.dns.getHosts'):
+            if (request.method, args.get('Command', None)) == ('GET', 'namecheap.domains.dns.getHosts'):
+                if args['ApiKey'] != case.api_key:
+                    raise ValueError('Bad API key: {}'.format(args['ApiKey']))
+            
                 body = '''<?xml version="1.0" encoding="utf-8"?>
                     <ApiResponse Status="OK" xmlns="http://api.namecheap.com/xml.response">
                       <Errors />
@@ -74,45 +88,68 @@ class TestAPI (unittest.TestCase):
                     </ApiResponse>
                     '''
             
-                vars = dict(additional_host='', hosts_hash='20bea02f8bf1fe5f9565e24b37353162ef5c73e9')
+                vars = dict(additional_host='', hosts_hash=case.HASH_BEFORE)
                 
                 if step == case.STEP_BAD_HASH:
                     vars['hosts_hash'] = 'xyzygy'
+                elif step == case.STEP_AFTER_ADD:
+                    vars['additional_host'] = '<host HostId="99999" Name="new" Type="CNAME" Address="example.com." MXPref="0" TTL="60" AssociatedAppTitle="" FriendlyName="" IsActive="" />'
+                    vars['hosts_hash'] = case.HASH_AFTER
 
                 return response(200, body.format(**vars), headers=headers)
             
-            raise NotImplementedError(request.method, args)
+            if (request.method, form.get('Command', None)) == ('POST', 'namecheap.domains.dns.setHosts'):
+                if form['ApiKey'] != case.api_key:
+                    raise ValueError('Bad API key: {}'.format(form['ApiKey']))
+            
+                self.assertEqual(form['RecordType8'], 'CNAME')
+                self.assertEqual(form['HostName8'], 'new')
+                self.assertEqual(form['Address8'], 'example.com.')
+                
+                return response(200, 'ok')
+            
+            raise NotImplementedError(request.method, url.geturl())
         
         raise NotImplementedError(url.geturl())
     
-      return thing_doer
+      return mock_handler
     
     def test_check_upstream(self):
         '''
         '''
         with HTTMock(self.response_content()):
-            check_upstream(self.api_base, '0xDEADBEEF')
+            check_upstream(self.api_base, self.api_key)
+    
+        with self.assertRaises(ValueError):
+            with HTTMock(self.response_content()):
+                check_upstream(self.api_base, '0xFAKESTUFF')
     
         with self.assertRaises(ValueError):
             with HTTMock(self.response_content(self.STEP_BAD_HASH)):
-                check_upstream(self.api_base, '0xDEADBEEF')
+                check_upstream(self.api_base, self.api_key)
     
     def test_hash_consistency(self):
         '''
         '''
-        data = u'''Type,Host,Value,TTL,MXPref,Note
-A,*.s,23.21.64.76,300,,
-CNAME,www,ec2-54-234-33-69.compute-1.amazonaws.com.,60,,The website
-MX,@,ASPMX.L.GOOGLE.COM.,300,10,GMail
-A,@,54.234.33.69,60,,The website
-A,boston,66.220.0.85,1800,,
-URL301,network,http://peernetwork.in,1800,,
-'''
-        
-        host_records = list(DictReader(StringIO(data)))
+        host_records = list(DictReader(StringIO(self.hosts_csv_data)))
         hash = hash_host_records(map(format_csv_row, host_records))
         
-        self.assertEqual(hash, '20bea02f8bf1fe5f9565e24b37353162ef5c73e9')
+        self.assertEqual(hash, self.HASH_BEFORE)
+    
+    def test_check_changes(self):
+        '''
+        '''
+        host_records = list(DictReader(StringIO(self.hosts_csv_data)))
+        host_records.append({'Type': 'CNAME', 'Host': 'new', 'Value': 'example.com.', 'MXPref': '', 'TTL': '60'})
         
+        hash = hash_host_records(map(format_csv_row, host_records))
+        self.assertEqual(hash, self.HASH_AFTER)
+
+        with HTTMock(self.response_content()):
+            push_upstream(self.api_base, self.api_key, host_records)
+        
+        with HTTMock(self.response_content(self.STEP_AFTER_ADD)):
+            check_upstream(self.api_base, self.api_key)
+
 if __name__ == '__main__':
     unittest.main()

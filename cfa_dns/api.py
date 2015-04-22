@@ -8,7 +8,7 @@ import json
 from socket import getaddrinfo, AF_INET, SOCK_STREAM
 from xml.etree.ElementTree import fromstring as parse_xml
 
-from requests import get
+from requests import get, post
 
 api_defaults = dict(
     UserName='codeforamerica',
@@ -35,10 +35,11 @@ def format_xml_element(el):
                    ('value', el.attrib['Address']), ('ttl', el.attrib['TTL']),
                    ('mxpref', el.attrib['MXPref'])])
 
-def hash_host_records(records):
+def hash_host_records(formatted_records):
     '''
     '''
-    serialized = json.dumps(sorted(records), ensure_ascii=True, separators=(',', ':'))
+    kwargs = dict(ensure_ascii=True, separators=(',', ':'))
+    serialized = json.dumps(sorted(formatted_records), **kwargs)
     return sha1(serialized).hexdigest()
 
 def get_proxy_ipaddr(api_proxy_base):
@@ -101,8 +102,6 @@ def push_upstream(api_proxy_base, api_key, host_records):
     
     form.update(api_defaults)
     
-    raise NotImplementedError(form)
-    
     for (record, number) in zip(host_records, count(2)):
         form.update({
             'HostName{:d}'.format(number): record['Host'],
@@ -112,4 +111,5 @@ def push_upstream(api_proxy_base, api_key, host_records):
             'TTL{:d}'.format(number): record['TTL']
             })
     
-    raise NotImplementedError(form)
+    response = post(api_proxy_base, data=form)
+    assert response.status_code in range(200, 299)

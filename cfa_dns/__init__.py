@@ -2,12 +2,10 @@ from sys import stderr
 from csv import DictReader
 from urlparse import urlparse
 from os.path import dirname, join, basename
-from hashlib import sha1
 from os import environ
-import json
 
 from flask import Blueprint, Flask
-from .api import check_upstream
+from .api import format_csv_row, hash_host_records, check_upstream, push_upstream
 
 URL_REDIRECTS = 'URL', 'URL301'
 
@@ -26,6 +24,8 @@ def create_app(environ):
     
     with open(filename) as file:
         host_records = list(DictReader(file))
+    
+    push_upstream(dns_api_base, dns_api_key, host_records)
 
     app = Flask(__name__)
     app.config['DNS_API_BASE'] = dns_api_base
@@ -55,18 +55,9 @@ def check_file(filename):
             scheme = urlparse(row['Value']).scheme
             assert scheme in ('http', 'https'), '"{Value}" is a bad redirect, {source}'.format(**row)
         
-        host = dict(
-            type=row['Type'],
-            name=row['Host'],
-            value=row['Value'],
-            ttl=row['TTL'],
-            mxpref=row['MXPref']
-            )
-        
-        hosts.append(host)
+        hosts.append(format_csv_row(row))
 
-    serialized = json.dumps(sorted(hosts), ensure_ascii=True, separators=(',', ':'))
-    hash = sha1(serialized).hexdigest()
+    hash = hash_host_records(hosts)
     
     print >> stderr, '{} checks out with hash "{}"'.format(basename(filename), hash)
 

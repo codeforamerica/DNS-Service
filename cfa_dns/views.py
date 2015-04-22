@@ -1,6 +1,9 @@
-from flask import current_app, request, redirect
+from time import time
+
+from flask import current_app, request, redirect, jsonify
 
 from . import cfadns, URL_REDIRECTS
+from .api import check_upstream
 
 @cfadns.route('/')
 @cfadns.route('/<path:path>')
@@ -20,3 +23,19 @@ def index(path=None):
         return 'I might know something about {}\n'.format('.'.join(host_parts))
 
     return 'I know nothing of {}\n'.format('.'.join(host_parts))
+
+@cfadns.route('/.well-known/status')
+def well_known_status():
+    '''
+    '''
+    response = dict(status=None, updated=int(time()),
+                    dependencies=['NameCheap'], resources={})
+
+    try:
+        check_upstream(current_app.config['DNS_API_BASE'], current_app.config['DNS_API_KEY'])
+    except Exception as e:
+        response['status'] = str(e)
+    else:
+        response['status'] = 'ok'
+        
+    return jsonify(response)

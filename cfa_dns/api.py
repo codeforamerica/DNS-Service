@@ -27,6 +27,9 @@ def check_upstream(api_proxy_base, api_key):
     got = get(api_proxy_base + '?' + urlencode(query))
     tree = parse_xml(got.content)
     
+    for el in tree.iter('{http://api.namecheap.com/xml.response}Error'):
+        raise ValueError('Upstream API error: {}'.format(el.text))
+    
     hosts, expected_hash = [], None
     
     for el in tree.iter('{http://api.namecheap.com/xml.response}host'):

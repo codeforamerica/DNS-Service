@@ -21,7 +21,8 @@ def create_app(environ):
     filename = join(dirname(__file__), '..', 'host-records.csv')
     check_file(filename)
 
-    check_upstream(environ['DNS_API_BASE'], environ['DNS_API_KEY'])
+    dns_api_base, dns_api_key = environ['DNS_API_BASE'], environ['DNS_API_KEY']
+    check_upstream(dns_api_base, dns_api_key)
     
     with open(filename) as file:
         host_records = list(DictReader(file))
@@ -29,6 +30,8 @@ def create_app(environ):
     app = Flask(__name__)
     app.config['HOST_RECORDS'] = host_records
     app.config['ZONE_NAME'] = environ['ZONE_NAME']
+    app.config['DNS_API_BASE'] = dns_api_base
+    app.config['DNS_API_KEY'] = dns_api_key
     app.register_blueprint(cfadns)
     return app
 

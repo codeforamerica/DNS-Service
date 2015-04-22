@@ -112,4 +112,6 @@ def push_upstream(api_proxy_base, api_key, host_records):
             })
     
     response = post(api_proxy_base, data=form)
-    assert response.status_code in range(200, 299)
+    
+    if response.status_code not in range(200, 299):
+        raise Exception('Bad response {}'.format(response.status_code))

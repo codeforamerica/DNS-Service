@@ -28,8 +28,6 @@ def create_app(environ):
         host_records = list(DictReader(file))
 
     app = Flask(__name__)
-    app.config['HOST_RECORDS'] = host_records
-    app.config['ZONE_NAME'] = environ['ZONE_NAME']
     app.config['DNS_API_BASE'] = dns_api_base
     app.config['DNS_API_KEY'] = dns_api_key
     app.register_blueprint(cfadns)

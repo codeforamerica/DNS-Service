@@ -6,3 +6,4 @@ boto==2.6.0
 docopt==0.5.0
 gunicorn==19.3.0
 itsdangerous==0.24
+requests==2.6.0

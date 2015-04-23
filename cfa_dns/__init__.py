@@ -15,7 +15,8 @@ allowed_ttls = range(60, 172801)
 cfadns = Blueprint('gloss', __name__)
 
 def create_app(environ):
-    
+    ''' Check validity of hosts, push them live, create and return a Flask app.
+    '''
     filename = join(dirname(__file__), '..', 'host-records.csv')
     check_file(filename)
 
@@ -33,11 +34,10 @@ def create_app(environ):
     app.register_blueprint(cfadns)
     return app
 
-def normalize(row):
-    return tuple(sorted(row.items()))
-
 def check_file(filename):
-    '''
+    ''' Check given file for valid host records collection.
+    
+        Throw exceptions if a problem is found, otherwise return nothing.
     '''
     with open(filename) as file:
         found_rows = list(DictReader(file))

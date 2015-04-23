@@ -43,7 +43,12 @@ def hash_host_records(formatted_records):
     return sha1(serialized).hexdigest()
 
 def get_proxy_ipaddr(api_proxy_base):
-    '''
+    ''' Get an IP address based on the API proxy URL.
+    
+        NameCheap uses IP address white-listing to secure their DNS records
+        API, while this app is designed to be hosted on Heroku with its
+        unstable IP addresses. So, we use an HTTP proxy to route requests
+        from a stable location.
     '''
     _, hostname, _, _, _, _ = urlparse(api_proxy_base)
     ((_, _, _, _, (ip_addr, _)), ) = getaddrinfo(hostname, 443, AF_INET, SOCK_STREAM)
@@ -51,7 +56,9 @@ def get_proxy_ipaddr(api_proxy_base):
     return ip_addr
 
 def check_upstream(api_proxy_base, api_key):
-    '''
+    ''' Check connectivity and consistency of NameCheap-hosted records.
+    
+        Throw exceptions if a problem is found, otherwise return nothing.
     '''
     query = dict(
         ApiKey=api_key,
@@ -83,7 +90,9 @@ def check_upstream(api_proxy_base, api_key):
     print >> stderr, 'Remote host checks out with hash "{}"'.format(found_hash)
 
 def push_upstream(api_proxy_base, api_key, host_records):
-    '''
+    ''' Post replacement host records to NameCheap.
+    
+        Throw exceptions if a problem is found, otherwise return nothing.
     '''
     hash = hash_host_records(map(format_csv_row, host_records))
     

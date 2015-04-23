@@ -113,7 +113,23 @@ URL301,network,http://peernetwork.in,1800,,
                 self.assertEqual(form['HostName8'], 'new')
                 self.assertEqual(form['Address8'], 'example.com.')
                 
-                return response(200, 'ok')
+                body = '''<?xml version="1.0" encoding="utf-8"?>
+                    <ApiResponse Status="OK" xmlns="http://api.namecheap.com/xml.response">
+                      <Errors />
+                      <Warnings />
+                      <RequestedCommand>namecheap.domains.dns.setHosts</RequestedCommand>
+                      <CommandResponse Type="namecheap.domains.dns.setHosts">
+                        <DomainDNSSetHostsResult Domain="codeforamerica.org" IsSuccess="true">
+                          <Warnings />
+                        </DomainDNSSetHostsResult>
+                      </CommandResponse>
+                      <Server>PHX01APIEXT02</Server>
+                      <GMTTimeDifference>--4:00</GMTTimeDifference>
+                      <ExecutionTime>1.417</ExecutionTime>
+                    </ApiResponse>
+                    '''
+                
+                return response(200, body, headers=headers)
             
             raise NotImplementedError(request.method, url.geturl())
         

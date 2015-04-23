@@ -78,7 +78,7 @@ def check_upstream(api_proxy_base, api_key):
     found_hash = hash_host_records(hosts)
     
     if expected_hash != found_hash:
-        raise ValueError('Found hash {} but expected {}'.format(found_hash, expected_hash))
+        raise ValueError('Calculated hash {} but expected {}'.format(found_hash, expected_hash))
     
     print >> stderr, 'Remote host checks out with hash "{}"'.format(found_hash)
 
@@ -111,7 +111,11 @@ def push_upstream(api_proxy_base, api_key, host_records):
             'TTL{:d}'.format(number): record['TTL']
             })
     
-    response = post(api_proxy_base, data=form)
+    posted = post(api_proxy_base, data=form)
+    tree = parse_xml(posted.content)
     
-    if response.status_code not in range(200, 299):
-        raise Exception('Bad response {}'.format(response.status_code))
+    for el in tree.iter('{http://api.namecheap.com/xml.response}Error'):
+        raise ValueError('Upstream API error: {}'.format(el.text))
+    
+    if posted.status_code not in range(200, 299):
+        raise Exception('Bad response status {}'.format(posted.status_code))

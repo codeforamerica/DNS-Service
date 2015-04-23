@@ -107,7 +107,7 @@ def push_upstream(api_proxy_base, api_key, host_records):
             'HostName{:d}'.format(number): record['Host'],
             'RecordType{:d}'.format(number): record['Type'],
             'Address{:d}'.format(number): record['Value'],
-            'MXPref{:d}'.format(number): record['MXPref'],
+            'MXPref{:d}'.format(number): record['MXPref'] or '0',
             'TTL{:d}'.format(number): record['TTL']
             })
     

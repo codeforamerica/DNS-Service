@@ -102,6 +102,13 @@ URL301,network,http://peernetwork.in,1800,,
                 if form['ApiKey'] != case.api_key:
                     raise ValueError('Bad API key: {}'.format(form['ApiKey']))
             
+                for number in range(1, 9):
+                    self.assertTrue('RecordType{}'.format(number) in form, 'Missing RecordType{}'.format(number))
+                    self.assertTrue('HostName{}'.format(number) in form, 'Missing HostName{}'.format(number))
+                    self.assertTrue('Address{}'.format(number) in form, 'Missing Address{}'.format(number))
+                    self.assertTrue('MXPref{}'.format(number) in form, 'Missing MXPref{}'.format(number))
+                    self.assertTrue('TTL{}'.format(number) in form, 'Missing TTL{}'.format(number))
+
                 self.assertEqual(form['RecordType8'], 'CNAME')
                 self.assertEqual(form['HostName8'], 'new')
                 self.assertEqual(form['Address8'], 'example.com.')

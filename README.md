@@ -9,6 +9,8 @@ rollback.
 
 If you need to add a new DNS record to codeforamerica.org, edit the file
 [`host-records.csv`](host-records.csv) and submit a pull request via Github.
+Records should be live within a few minutes depending on speed of Travis
+and Heroku. Check with [whatsmydns.net](https://www.whatsmydns.net).
 
 Code
 ----

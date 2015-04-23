@@ -60,6 +60,10 @@ def check_file(filename):
             if scheme not in ('http', 'https'):
                 raise ValueError('"{Value}" is a bad redirect, {source}'.format(**row))
         
+        elif row['Type'] == 'CNAME':
+            if not row['Value'].endswith('.'):
+                raise ValueError('"{Value}" is missing a closing period, {source}'.format(**row))
+        
         hosts.append(format_csv_row(row))
 
     hash = hash_host_records(hosts)
